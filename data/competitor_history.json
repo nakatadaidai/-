@@ -1,114 +1,118 @@
 {
   "version": 2,
-  "savedAt": "2026-06-21T06:06:34.498Z",
+  "savedAt": "2026-06-21T06:46:58.796Z",
   "categories": {
     "desktop": {
       "cst": {
         "maker": "CST",
         "model": "ScanXmate-DT",
+        "form": "卓上型",
         "kv": "（要記入）",
         "power": "—",
         "focal": "—",
         "detector": "—",
         "sample": "—",
+        "fov": "—",
         "accuracy": "—",
+        "dims": "卓上",
         "software": "自社 / VGStudio MAX",
         "notes": "卓上型・カスタム対応"
       },
       "snapshot": {
         "0": {
+          "form": "卓上型",
           "kv": "130 kV (微)",
           "power": "39 W",
           "focal": "1.3 µm / 約3-4 µm",
-          "detector": "—",
+          "detector": "FPD",
           "sample": "Φ200×150 mm",
+          "fov": "Φ200 mm",
           "accuracy": "—",
+          "dims": "卓上 (100V・冷却水不要)",
           "software": "自社オールインワン",
-          "notes": "100V運用・冷却水不要・最速18秒"
+          "notes": "卓上・最速18秒・省電力"
         },
         "1": {
-          "kv": "100 kV (微)",
-          "power": "—",
-          "focal": "—",
-          "detector": "イメージインテンシファイア",
-          "sample": "—",
-          "accuracy": "—",
-          "software": "inspeXio64",
-          "notes": "密封管・樹脂/骨など軟材向け"
-        },
-        "2": {
-          "kv": "—",
-          "power": "—",
-          "focal": "—",
-          "detector": "3k 検出器",
-          "sample": "中型樹脂部品",
-          "accuracy": "計測グレード",
-          "software": "ZEISS INSPECT X-Ray",
-          "notes": "小フットプリント計測CT・樹脂高分解"
-        },
-        "3": {
-          "kv": "160 kV (微)",
-          "power": "60 / 225 W(opt)",
-          "focal": "マイクロフォーカス",
-          "detector": "FPD",
-          "sample": "小〜中型",
-          "accuracy": "—",
-          "software": "Inspect-X",
-          "notes": "エントリー機・開放管で低ランニングコスト"
-        },
-        "4": {
+          "form": "卓上型",
           "kv": "40-130 kV (微)",
           "power": "39 W (300 µA)",
           "focal": "約3 µm (画素)",
           "detector": "6 MP FPD",
           "sample": "Φ300×500 mm / 20 kg",
+          "fov": "オフセットΦ250 mm",
           "accuracy": "—",
-          "software": "3D.SUITE (NRECON 他)",
-          "notes": "卓上で大型試料・オフセット走査・15秒級"
+          "dims": "卓上 (床置不要)",
+          "software": "3D.SUITE",
+          "notes": "卓上で大型試料・15秒級"
+        },
+        "2": {
+          "form": "卓上型",
+          "kv": "微 / ナノ",
+          "power": "—",
+          "focal": "300 nm",
+          "detector": "—",
+          "sample": "小型",
+          "fov": "—",
+          "accuracy": "—",
+          "dims": "卓上・軽量",
+          "software": "自社",
+          "notes": "中国製・小型高分解 (車載/船上も可)"
+        },
+        "3": {
+          "form": "卓上型 (計測)",
+          "kv": "~130 kV (微)",
+          "power": "—",
+          "focal": "高分解",
+          "detector": "—",
+          "sample": "小型部品",
+          "fov": "—",
+          "accuracy": "計測グレード (VDI)",
+          "dims": "卓上",
+          "software": "Metrosoft / 自社",
+          "notes": "卓上計測CT・小部品の寸法測定"
+        },
+        "4": {
+          "form": "コンパクト据置 (計測CMM)",
+          "kv": "130 / 160 kV (微)",
+          "power": "〜80 W",
+          "focal": "微焦点 (透過モノブロック)",
+          "detector": "—",
+          "sample": "Φ277×L149 mm",
+          "fov": "検出器内FOV",
+          "accuracy": "±4.5 µm (VDI2617)",
+          "dims": "小型・全遮蔽",
+          "software": "WinWerth",
+          "notes": "エアベアリング軸・OnTheFly高速・DAkkS可"
         },
         "5": {
-          "kv": "90 / 130 kV (微)",
+          "form": "小型据置 (計測)",
+          "kv": "微焦点",
           "power": "—",
-          "focal": "5 µm",
-          "detector": "FPD",
-          "sample": "小型電子部品・樹脂",
-          "accuracy": "—",
-          "software": "自社",
-          "notes": "HDR・直交CT・オールインワン省設置"
-        },
-        "6": {
-          "kv": "90 kV (微)",
-          "power": "—",
-          "focal": "マイクロフォーカス",
-          "detector": "小型 FPD",
-          "sample": "小型製品",
-          "accuracy": "—",
-          "software": "自社 / VG",
-          "notes": "密封管・卓上・小型詳細スキャン"
-        },
-        "7": {
-          "kv": "密封透過管 (微/ナノ)",
-          "power": "10 W",
-          "focal": "0.5 µm",
-          "detector": "2 MP I.I. (XiDAT3)",
-          "sample": "電子基板・部品",
-          "accuracy": "—",
-          "software": "Gensys (CTオプション)",
-          "notes": "電子部品特化・等心傾斜・CTはオプション"
+          "focal": "高分解",
+          "detector": "3k 検出器",
+          "sample": "中型樹脂部品",
+          "fov": "—",
+          "accuracy": "計測グレード",
+          "dims": "小フットプリント",
+          "software": "ZEISS INSPECT X-Ray",
+          "notes": "樹脂高分解の計測CT"
         }
       },
-      "stamp": "2026/06/21 15:06"
+      "stamp": "2026/06/21 15:44"
     },
     "mini": {
       "cst": {
         "maker": "CST",
         "model": "Mini90",
+        "form": "小型据置",
         "kv": "90 kV (微)",
         "power": "（要記入）",
         "focal": "—",
         "detector": "—",
         "sample": "—",
+        "fov": "—",
         "accuracy": "—",
+        "dims": "小型",
         "software": "自社 / VGStudio MAX",
         "notes": "90kV級・小型・カスタム対応"
       },
@@ -119,12 +123,15 @@
       "cst": {
         "maker": "CST",
         "model": "ComscanX Premium",
+        "form": "据置キャビネット",
         "kv": "（要記入）",
         "power": "—",
         "focal": "—",
         "detector": "—",
         "sample": "—",
+        "fov": "—",
         "accuracy": "（MPE宣言予定）",
+        "dims": "据置",
         "software": "自社 / VGStudio MAX",
         "notes": "ハイエンド汎用・サファイア球校正実績"
       },
@@ -135,12 +142,15 @@
       "cst": {
         "maker": "CST",
         "model": "デュアル線源CT (開発中)",
+        "form": "据置 (カスタム)",
         "kv": "230 kV(反射) + 160 kV(透過)",
         "power": "—",
         "focal": "ナノ: 0.2 µm焦点 (L10711-26)",
         "detector": "4343(139µm) / 1512(25µm)",
         "sample": "〜100 kg級 (要求)",
+        "fov": "—",
         "accuracy": "（MPE宣言予定）",
+        "dims": "カスタム据置",
         "software": "自社 / VGStudio MAX",
         "notes": "大型重量試料・斜めCT・研究機関向けオープン"
       },
@@ -149,7 +159,107 @@
     }
   },
   "news": {
-    "items": [],
+    "items": [
+      {
+        "date": "2026-03",
+        "maker": "業界",
+        "title": "産業用CT市場、2026年は約5.95億ドル・年率8.6%成長の予測",
+        "summary": "市場調査によると2026年5.95億ドル→2031年8.99億ドル。上位5社(ZEISS/Nikon/Waygate/Yxlon/NSI)で45-50%シェア。",
+        "url": "https://www.mordorintelligence.com/industry-reports/industrial-computed-tomography-market",
+        "source": "Mordor Intelligence",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2025-10-21",
+        "maker": "島津",
+        "title": "島津、マイクロフォーカスX線CT「inspeXio 7000」を発売",
+        "summary": "最大1400万画素相当の大型FPD搭載の高性能機。希望販売価格は約1.15億円(税込)。",
+        "url": "https://optronics-media.com/news/20251028/104145/",
+        "source": "OPTRONICS ONLINE",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-02",
+        "maker": "島津",
+        "title": "島津の計測用X線CT「XDimensus 300」、球間距離測定誤差±(3.8+L/50)µm",
+        "summary": "コンパクト筐体で大きな測定サイズと業界トップクラスの精度保証を両立する計測CT。",
+        "url": "https://www.an.shimadzu.co.jp/products/non-destructive-testing/dimensional-x-ray-ct-system/xdimensus-300/index.html",
+        "source": "島津製作所",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2025-12-04",
+        "maker": "リガク",
+        "title": "リガク、半導体ウェーハ計測「XTRAIA MF-3400」販売開始",
+        "summary": "キオクシアの3D NAND量産ライン導入が決定。26年度に前モデル合算で60億円超の売上見込み。",
+        "url": "https://rigaku.com/ja/about/news-and-press-releases/2025-12-04",
+        "source": "リガク(プレスリリース)",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2025-02-27",
+        "maker": "リガク",
+        "title": "リガク、国立台湾科技大とX線CT「CT Lab HV」活用の先端材料・パッケージ研究で協働",
+        "summary": "3D画像再構成技術をフロンティア材料やアドバンスドパッケージ分野へ応用する戦略的提携。",
+        "url": "https://rigaku.com/ja/about/news-and-press-releases/2025-03-26-1",
+        "source": "リガク(お知らせ)",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-03",
+        "maker": "ZEISS",
+        "title": "ZEISSグループ、26年度上期売上58.41億ユーロ(前年比+1%)",
+        "summary": "EBITは9.55億ユーロ。計測・品質部門を含むグループ全体の業績概況。",
+        "url": "https://metrology.news/",
+        "source": "Metrology News",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-04-13",
+        "maker": "Hexagon / Waygate",
+        "title": "Hexagon、Waygate Technologiesを約14.5億ドルで買収すると発表",
+        "summary": "CT/ラジオグラフィ大手Waygate(売上約6.3億ドル・従業員約1500名)をBaker Hughesから取得しNDT市場へ本格参入。26年下期クローズ予定。",
+        "url": "https://hexagon.com/company/newsroom/press-releases/2026/hexagon-to-acquire-waygate-technologies-expanding-into-nondestructive-testing",
+        "source": "Hexagon (newsroom)",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-02-10",
+        "maker": "業界(展示会)",
+        "title": "第15回 産業用CT国際会議(iCT 2026)、オーストリア・リンツで開催",
+        "summary": "2/10〜13開催。産業・学術の最新CT技術が集う主要カンファレンス。次回iCT2027は仏グルノーブル。",
+        "url": "https://www.ndt.net/library/event.php?id=3722",
+        "source": "NDT.net",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-02-03",
+        "maker": "Comet Yxlon (半導体)",
+        "title": "Comet Yxlon、先端パッケージング向け次世代3D X線検査「CA20」を量産ラインへ",
+        "summary": "EFEMローダーとDragonfly駆動のADRを搭載しSECS/GEM対応。バンプ/TSVのボイド・ずれを高速検出。FF35 CTはSEMI S2/S8認証のSEMI仕様も。",
+        "url": "https://epp-europe-news.com/allgemein/next-gen-x-ray-inspection-for-advanced-packaging/",
+        "source": "EPP Europe",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-06",
+        "maker": "業界(半導体)",
+        "title": "HBMの信頼性確保に3D X線/マイクロCT検査が不可欠に",
+        "summary": "積層HBMでボイド・クラック・TSVずれ・反りを非破壊で全数把握。AIチップ需要を背景に半導体X線検査が拡大。",
+        "url": "https://semiengineering.com/enhancing-high-bandwidth-memory-hbm-reliability-with-3d-x-ray-inspection/",
+        "source": "Semiconductor Engineering",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      },
+      {
+        "date": "2026-03-21",
+        "maker": "業界(半導体)",
+        "title": "先端パッケージング計測市場、2025年に48億ドル規模",
+        "summary": "X線計測(2D透過・CT・蛍光X線)は組立済みマルチダイを撮像できる唯一の非破壊手段。3D IC/HBMが成長を牽引。",
+        "url": "https://dataintelo.com/report/global-advanced-packaging-metrology-inspection-equipment-market",
+        "source": "Dataintelo",
+        "addedAt": "2026-06-01T00:00:00.000Z"
+      }
+    ],
     "stamp": ""
   }
 }
