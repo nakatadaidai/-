@@ -1,1 +1,155 @@
-
+{
+  "version": 2,
+  "savedAt": "2026-06-21T06:06:34.498Z",
+  "categories": {
+    "desktop": {
+      "cst": {
+        "maker": "CST",
+        "model": "ScanXmate-DT",
+        "kv": "（要記入）",
+        "power": "—",
+        "focal": "—",
+        "detector": "—",
+        "sample": "—",
+        "accuracy": "—",
+        "software": "自社 / VGStudio MAX",
+        "notes": "卓上型・カスタム対応"
+      },
+      "snapshot": {
+        "0": {
+          "kv": "130 kV (微)",
+          "power": "39 W",
+          "focal": "1.3 µm / 約3-4 µm",
+          "detector": "—",
+          "sample": "Φ200×150 mm",
+          "accuracy": "—",
+          "software": "自社オールインワン",
+          "notes": "100V運用・冷却水不要・最速18秒"
+        },
+        "1": {
+          "kv": "100 kV (微)",
+          "power": "—",
+          "focal": "—",
+          "detector": "イメージインテンシファイア",
+          "sample": "—",
+          "accuracy": "—",
+          "software": "inspeXio64",
+          "notes": "密封管・樹脂/骨など軟材向け"
+        },
+        "2": {
+          "kv": "—",
+          "power": "—",
+          "focal": "—",
+          "detector": "3k 検出器",
+          "sample": "中型樹脂部品",
+          "accuracy": "計測グレード",
+          "software": "ZEISS INSPECT X-Ray",
+          "notes": "小フットプリント計測CT・樹脂高分解"
+        },
+        "3": {
+          "kv": "160 kV (微)",
+          "power": "60 / 225 W(opt)",
+          "focal": "マイクロフォーカス",
+          "detector": "FPD",
+          "sample": "小〜中型",
+          "accuracy": "—",
+          "software": "Inspect-X",
+          "notes": "エントリー機・開放管で低ランニングコスト"
+        },
+        "4": {
+          "kv": "40-130 kV (微)",
+          "power": "39 W (300 µA)",
+          "focal": "約3 µm (画素)",
+          "detector": "6 MP FPD",
+          "sample": "Φ300×500 mm / 20 kg",
+          "accuracy": "—",
+          "software": "3D.SUITE (NRECON 他)",
+          "notes": "卓上で大型試料・オフセット走査・15秒級"
+        },
+        "5": {
+          "kv": "90 / 130 kV (微)",
+          "power": "—",
+          "focal": "5 µm",
+          "detector": "FPD",
+          "sample": "小型電子部品・樹脂",
+          "accuracy": "—",
+          "software": "自社",
+          "notes": "HDR・直交CT・オールインワン省設置"
+        },
+        "6": {
+          "kv": "90 kV (微)",
+          "power": "—",
+          "focal": "マイクロフォーカス",
+          "detector": "小型 FPD",
+          "sample": "小型製品",
+          "accuracy": "—",
+          "software": "自社 / VG",
+          "notes": "密封管・卓上・小型詳細スキャン"
+        },
+        "7": {
+          "kv": "密封透過管 (微/ナノ)",
+          "power": "10 W",
+          "focal": "0.5 µm",
+          "detector": "2 MP I.I. (XiDAT3)",
+          "sample": "電子基板・部品",
+          "accuracy": "—",
+          "software": "Gensys (CTオプション)",
+          "notes": "電子部品特化・等心傾斜・CTはオプション"
+        }
+      },
+      "stamp": "2026/06/21 15:06"
+    },
+    "mini": {
+      "cst": {
+        "maker": "CST",
+        "model": "Mini90",
+        "kv": "90 kV (微)",
+        "power": "（要記入）",
+        "focal": "—",
+        "detector": "—",
+        "sample": "—",
+        "accuracy": "—",
+        "software": "自社 / VGStudio MAX",
+        "notes": "90kV級・小型・カスタム対応"
+      },
+      "snapshot": null,
+      "stamp": null
+    },
+    "performance": {
+      "cst": {
+        "maker": "CST",
+        "model": "ComscanX Premium",
+        "kv": "（要記入）",
+        "power": "—",
+        "focal": "—",
+        "detector": "—",
+        "sample": "—",
+        "accuracy": "（MPE宣言予定）",
+        "software": "自社 / VGStudio MAX",
+        "notes": "ハイエンド汎用・サファイア球校正実績"
+      },
+      "snapshot": null,
+      "stamp": null
+    },
+    "custom": {
+      "cst": {
+        "maker": "CST",
+        "model": "デュアル線源CT (開発中)",
+        "kv": "230 kV(反射) + 160 kV(透過)",
+        "power": "—",
+        "focal": "ナノ: 0.2 µm焦点 (L10711-26)",
+        "detector": "4343(139µm) / 1512(25µm)",
+        "sample": "〜100 kg級 (要求)",
+        "accuracy": "（MPE宣言予定）",
+        "software": "自社 / VGStudio MAX",
+        "notes": "大型重量試料・斜めCT・研究機関向けオープン"
+      },
+      "snapshot": null,
+      "stamp": null
+    }
+  },
+  "news": {
+    "items": [],
+    "stamp": ""
+  }
+}
