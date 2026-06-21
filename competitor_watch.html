@@ -1,0 +1,811 @@
+<!--
+  競合監視・仕様比較ツール (competitor_watch.html) — 拡張版
+  スコープ: マイクロフォーカス / ナノフォーカス X線CT のみ
+  （高エネルギー MV級・ミニフォーカス専業、LINAC型はスコープ外）
+  - CST 4カテゴリー (Desktop / Mini / Performance / Full-custom) ごとに競合機種を比較
+  - 「最新スペックを取得」でアプリ内から Claude (web_search) を呼び出し再取得
+  - 前回スナップショットと差分比較し、変更セルをハイライト
+  注: 自動更新と保存は claude.ai のアーティファクトとして開いた場合に動作します。
+-->
+<meta charset="utf-8">
+<title>競合監視・仕様比較ツール</title>
+<style>
+  :root{
+    --ink:#1c1f23; --ink2:#5a6066; --ink3:#8b9197;
+    --line:#e2e5e9; --line2:#cdd2d8;
+    --surface:#ffffff; --panel:#f6f7f9; --panel2:#eef0f3;
+    --cst:#0d4f8b; --cst-bg:#eaf2fb; --cst-line:#bcd6f0;
+    --hi:#fff3cf; --hi-line:#e9c95a; --hi-ink:#7a5a02;
+    --err:#fbeaea; --err-ink:#9a2a2a;
+    --radius:10px;
+    --font:"BIZ UDPゴシック","BIZ UDGothic","Yu Gothic UI","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--ink);background:var(--panel);
+    -webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6}
+  .wrap{max-width:1280px;margin:0 auto;padding:22px 20px 60px}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    padding-bottom:14px;border-bottom:2px solid var(--ink);margin-bottom:6px;flex-wrap:wrap}
+  header.top h1{font-size:19px;font-weight:700;margin:0;letter-spacing:.01em}
+  header.top .sub{color:var(--ink2);font-size:12.5px;margin-top:3px;max-width:760px}
+  header.top .sub .scope{display:inline-block;background:var(--cst-bg);color:var(--cst);
+    border:1px solid var(--cst-line);border-radius:5px;padding:1px 7px;font-weight:600;font-size:11.5px;margin-right:6px}
+  .legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--ink2);flex-wrap:wrap}
+  .legend .chip{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:13px;height:13px;border-radius:3px;border:1px solid var(--line2)}
+  .legend .sw.cst{background:var(--cst-bg);border-color:var(--cst-line)}
+  .legend .sw.hi{background:var(--hi);border-color:var(--hi-line)}
+
+  .tabs{display:flex;gap:4px;margin:18px 0 0;flex-wrap:wrap}
+  .tab{appearance:none;border:1px solid var(--line2);border-bottom:none;background:var(--panel2);
+    color:var(--ink2);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;
+    padding:9px 16px;border-radius:8px 8px 0 0;position:relative;top:1px}
+  .tab .cat-en{font-weight:400;color:var(--ink3);font-size:11px;margin-left:5px}
+  .tab .cnt{font-weight:400;color:var(--ink3);font-size:10.5px;margin-left:5px}
+  .tab[aria-selected="true"]{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+  .tab[aria-selected="true"] .cat-en{color:var(--cst)}
+
+  .panelbox{background:var(--surface);border:1px solid var(--line2);border-radius:0 var(--radius) var(--radius) var(--radius);
+    padding:16px 16px 18px}
+  .panelhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .panelhead .desc{font-size:12.5px;color:var(--ink2);max-width:720px}
+  .panelhead .desc b{color:var(--cst)}
+  .controls{display:flex;align-items:center;gap:10px}
+  .stamp{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+  button.upd{appearance:none;border:1px solid var(--cst);background:var(--cst);color:#fff;
+    font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:8px 16px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;transition:opacity .15s}
+  button.upd:hover{opacity:.9}
+  button.upd:disabled{opacity:.55;cursor:default}
+  button.upd .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;
+    border-radius:50%;animation:sp .7s linear infinite;display:none}
+  button.upd.loading .spin{display:inline-block}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .prog{font-size:11.5px;color:var(--ink3);white-space:nowrap}
+
+  .tablescroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+  table{border-collapse:collapse;width:100%;min-width:1040px;font-size:12.6px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--panel2);color:var(--ink2);font-weight:600;font-size:11.5px;
+    position:sticky;top:0;white-space:nowrap;border-bottom:1px solid var(--line2)}
+  thead th:first-child{min-width:158px}
+  tbody tr:last-child td{border-bottom:none}
+  td.maker{white-space:nowrap}
+  td.maker .mk{font-weight:600}
+  td.maker .md{color:var(--ink2);font-size:11.5px;margin-top:1px}
+  td.maker a{color:var(--cst);text-decoration:none;font-size:10.5px}
+  td.maker a:hover{text-decoration:underline}
+  tr.cstrow td{background:var(--cst-bg)}
+  tr.cstrow td.maker .mk{color:var(--cst)}
+  tr.cstrow .pill{display:inline-block;background:var(--cst);color:#fff;font-size:9.5px;font-weight:700;
+    border-radius:4px;padding:1px 6px;margin-bottom:3px;letter-spacing:.04em}
+  .cell{display:block}
+  .cell.changed{background:var(--hi);outline:2px solid var(--hi-line);border-radius:5px;
+    padding:3px 6px;margin:-3px -2px}
+  .cell .prev{display:block;font-size:10.5px;color:var(--hi-ink);margin-top:2px}
+  .cell .prev s{opacity:.8}
+  td[contenteditable]{outline:none}
+  td[contenteditable]:focus{box-shadow:inset 0 0 0 2px var(--cst-line);border-radius:4px}
+
+  .note{font-size:11.5px;color:var(--ink2);margin-top:12px;line-height:1.65;
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 13px}
+  .note b{color:var(--ink)}
+  .errbar{display:none;margin-top:10px;font-size:12px;background:var(--err);color:var(--err-ink);
+    border:1px solid #e8b4b4;border-radius:8px;padding:8px 12px}
+  .editnote{font-size:11px;color:var(--ink3);margin-top:8px}
+
+  /* ニュース / トピックス */
+  .news-empty{font-size:13px;color:var(--ink2);background:var(--panel);border:1px dashed var(--line2);
+    border-radius:10px;padding:22px;text-align:center}
+  .news-list{display:flex;flex-direction:column;gap:10px}
+  .news-item{border:1px solid var(--line);border-radius:10px;padding:11px 13px;background:var(--surface)}
+  .news-item.isnew{border-color:var(--hi-line);background:var(--hi)}
+  .news-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+  .news-chip{display:inline-block;background:var(--cst-bg);color:var(--cst);border:1px solid var(--cst-line);
+    border-radius:5px;padding:1px 8px;font-size:10.5px;font-weight:600;white-space:nowrap}
+  .news-chip.ind{background:var(--panel2);color:var(--ink2);border-color:var(--line2)}
+  .news-date{font-size:11px;color:var(--ink3)}
+  .news-new{display:inline-block;background:var(--hi-ink);color:#fff;border-radius:4px;padding:0 6px;
+    font-size:9.5px;font-weight:700;letter-spacing:.05em}
+  .news-title{display:block;font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;line-height:1.45}
+  .news-title:hover{color:var(--cst);text-decoration:underline}
+  a.news-title:after{content:" ↗";color:var(--ink3);font-weight:400;font-size:11px}
+  .news-sum{font-size:12px;color:var(--ink2);margin-top:3px;line-height:1.6}
+  .news-src{font-size:10.5px;color:var(--ink3);margin-top:4px}
+  .news-clear{appearance:none;background:none;border:none;color:var(--ink3);font-family:inherit;
+    font-size:11px;cursor:pointer;text-decoration:underline;padding:0}
+  .news-clear:hover{color:var(--err-ink)}
+
+  /* GitHub 履歴連携ツールバー */
+  .gittools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    margin:12px 0 0;padding:9px 13px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px}
+  .git-status{font-size:11.5px;color:var(--ink2)}
+  .git-status b{color:var(--cst)}
+  .git-dl{appearance:none;border:1px solid var(--line2);background:var(--surface);color:var(--ink);
+    font-family:inherit;font-size:12px;font-weight:600;border-radius:7px;padding:7px 13px;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:background .15s}
+  .git-dl:hover{background:var(--panel)}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>競合監視・仕様比較ツール</h1>
+      <div class="sub">
+        <span class="scope">対象: マイクロ／ナノフォーカス</span>
+        CST 製品カテゴリー別の競合 X 線 CT 仕様比較。「最新スペックを取得」で各社サイトを再調査し、前回からの変更箇所を色で表示します。高エネルギー（MV 級・ミニフォーカス専業・LINAC 型）はスコープ外です。
+      </div>
+    </div>
+    <div class="legend">
+      <span class="chip"><span class="sw cst"></span>自社 (CST)</span>
+      <span class="chip"><span class="sw hi"></span>前回から変更あり</span>
+    </div>
+  </header>
+
+  <div class="gittools">
+    <span class="git-status" id="repo-status">リポジトリ履歴: 読込中…</span>
+    <button class="git-dl" onclick="downloadHistory()">⬇ 履歴JSONをダウンロード</button>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<script>
+/* ====================================================================
+   列定義
+   ==================================================================== */
+const COLS = [
+  {key:"kv",       label:"管電圧 (微焦点/ナノ)"},
+  {key:"power",    label:"出力"},
+  {key:"focal",    label:"焦点 / 分解能"},
+  {key:"detector", label:"検出器"},
+  {key:"sample",   label:"最大試料 (寸法/重量)"},
+  {key:"accuracy", label:"計測精度 (MPE)"},
+  {key:"software", label:"解析ソフト"},
+  {key:"notes",    label:"特徴 / 差別化"}
+];
+
+/* ====================================================================
+   カテゴリー + 競合データ（Web調査値, 2026-06 時点 / 微焦点・ナノ焦点のみ）
+   ==================================================================== */
+const CATEGORIES = [
+  {
+    id:"desktop", jp:"デスクトップ", en:"Desktop",
+    desc:'<b>ScanXmate-DT</b> 相当。卓上〜小型キャビネットの微焦点機。100V 運用・省スペース・容易設置が競争軸。',
+    cst:{maker:"CST", model:"ScanXmate-DT", kv:"（要記入）", power:"—", focal:"—",
+         detector:"—", sample:"—", accuracy:"—", software:"自社 / VGStudio MAX", notes:"卓上型・カスタム対応"},
+    rivals:[
+      {maker:"リガク", model:"CT Lab HX130", kv:"130 kV (微)", power:"39 W", focal:"1.3 µm / 約3-4 µm",
+       detector:"—", sample:"Φ200×150 mm", accuracy:"—", software:"自社オールインワン",
+       notes:"100V運用・冷却水不要・最速18秒", src:"https://japan.rigaku.com/ja/products/xrm/ctlabhx"},
+      {maker:"島津", model:"inspeXio SMX-100CT Plus", kv:"100 kV (微)", power:"—", focal:"—",
+       detector:"イメージインテンシファイア", sample:"—", accuracy:"—", software:"inspeXio64",
+       notes:"密封管・樹脂/骨など軟材向け", src:"https://www.an.shimadzu.co.jp/ndi/products/x_ryct/100ctplus/index.htm"},
+      {maker:"ZEISS", model:"METROTOM 6 scout", kv:"—", power:"—", focal:"—",
+       detector:"3k 検出器", sample:"中型樹脂部品", accuracy:"計測グレード", software:"ZEISS INSPECT X-Ray",
+       notes:"小フットプリント計測CT・樹脂高分解", src:"https://www.zeiss.com/metrology/us/systems/x-ray/industrial-ct/metrotom-6-scout.html"},
+      {maker:"Nikon", model:"XT H 160", kv:"160 kV (微)", power:"60 / 225 W(opt)", focal:"マイクロフォーカス",
+       detector:"FPD", sample:"小〜中型", accuracy:"—", software:"Inspect-X",
+       notes:"エントリー機・開放管で低ランニングコスト", src:"https://industry.nikon.com/en-gb/products/x-ray-ct/xt-h-series/"},
+      {maker:"Bruker", model:"SKYSCAN 1273", kv:"40-130 kV (微)", power:"39 W (300 µA)", focal:"約3 µm (画素)",
+       detector:"6 MP FPD", sample:"Φ300×500 mm / 20 kg", accuracy:"—", software:"3D.SUITE (NRECON 他)",
+       notes:"卓上で大型試料・オフセット走査・15秒級", src:"https://www.bruker.com/en/products-and-solutions/preclinical-imaging/micro-ct/skyscan-1273.html"},
+      {maker:"東芝UT（旧東芝IT）", model:"TXS-30900FD (コンパクトCT)", kv:"90 / 130 kV (微)", power:"—", focal:"5 µm",
+       detector:"FPD", sample:"小型電子部品・樹脂", accuracy:"—", software:"自社",
+       notes:"HDR・直交CT・オールインワン省設置", src:"https://www.toshiba-itc.com/hihakai/"},
+      {maker:"テスコ", model:"TXS 90 Portable", kv:"90 kV (微)", power:"—", focal:"マイクロフォーカス",
+       detector:"小型 FPD", sample:"小型製品", accuracy:"—", software:"自社 / VG",
+       notes:"密封管・卓上・小型詳細スキャン", src:"https://www.ipros.jp/company/detail/32196/category/"},
+      {maker:"Nordson", model:"XD7600NT Ruby", kv:"密封透過管 (微/ナノ)", power:"10 W", focal:"0.5 µm",
+       detector:"2 MP I.I. (XiDAT3)", sample:"電子基板・部品", accuracy:"—", software:"Gensys (CTオプション)",
+       notes:"電子部品特化・等心傾斜・CTはオプション", src:"https://www.nordson.com/en/divisions/dage/products/x-ray-inspection-systems"}
+    ]
+  },
+  {
+    id:"mini", jp:"Mini (90kV級)", en:"Mini",
+    desc:'<b>Mini90</b> 相当。90kV 級の小型・高速・電子部品/基板向け微焦点機。',
+    cst:{maker:"CST", model:"Mini90", kv:"90 kV (微)", power:"（要記入）", focal:"—",
+         detector:"—", sample:"—", accuracy:"—", software:"自社 / VGStudio MAX", notes:"90kV級・小型・カスタム対応"},
+    rivals:[
+      {maker:"リガク", model:"CT Lab GX", kv:"90 / 130 kV (微)", power:"8 W(90kV) / 39 W(130kV)", focal:"約4.5 µm",
+       detector:"—", sample:"水平設置・in-situ可", accuracy:"—", software:"自社オールインワン",
+       notes:"最速3.9秒・4D/in-situ・水平ガントリ", src:"https://japan.rigaku.com/ja/products/xrm/ctlabgx"},
+      {maker:"島津", model:"Xslicer SMX-1020", kv:"90 kV (微)", power:"—", focal:"—",
+       detector:"300万画素 FPD", sample:"基板・電子部品", accuracy:"—", software:"inspeXio系",
+       notes:"HDR・最大3200万画素パノラマ・5秒起動", src:"https://www.x-inspection.com/maker/shimadzu.html"},
+      {maker:"東芝UT（旧東芝IT）", model:"TXV-CH4090FD (小型傾斜)", kv:"90 kV (微)", power:"—", focal:"5 µm",
+       detector:"FPD", sample:"基板・BGA・電子部品", accuracy:"—", software:"自社",
+       notes:"小型傾斜モデル・斜め観察", src:"https://www.toshiba-itc.com/hihakai/"},
+      {maker:"Nordson", model:"Ruby XL (XD7800NT)", kv:"密封透過管 NT500 (微)", power:"20 W", focal:"0.5 µm",
+       detector:"3 MP CMOS FPD", sample:"大型基板 840×615 mm", accuracy:"—", software:"ImageWizard (CTオプション)",
+       notes:"大型基板・70°斜視・等心・CTオプション", src:"https://www.nordson.com/en/products/test-and-inspection-products/dage-xd7800nt-ruby-xl"},
+      {maker:"ユーエイチシステム", model:"XVA-160αII Z", kv:"160 kV (微/ナノ)", power:"—", focal:"250 / 800 nm 切替",
+       detector:"高精細", sample:"基板・電子/車載部品", accuracy:"—", software:"自社 / Advance",
+       notes:"斜めCT・ユーセントリック・超高倍率2000倍", src:"https://www.uhsystem.co.jp/product_1/xva-160ii/"},
+      {maker:"Waygate (phoenix)", model:"Microme|x Neo", kv:"160 / 180 kV (微)", power:"20 W", focal:"0.5 µm",
+       detector:"DXR デジタル", sample:"電子部品・基板", accuracy:"—", software:"X|act / Flash!",
+       notes:"電子AXI・OVHM傾斜・Planar CT対応", src:"https://www.bakerhughes.com/waygate-technologies/industrial-radiography-and-ct/electronics-xray-inspection-axi/micromex-nanomex-neo"},
+      {maker:"日本装置開発 (JED)", model:"CTV190nFPD", kv:"190 kV級 (微/ナノ)", power:"—", focal:"高精細",
+       detector:"FPD", sample:"基板・電子部品", accuracy:"—", software:"自社",
+       notes:"ボード系エレクトロニクス特化・高速", src:"http://www.jed-a.jp/product/"}
+    ]
+  },
+  {
+    id:"performance", jp:"Performance", en:"Performance",
+    desc:'<b>ComscanX Premium</b> 相当。225〜300kV 級・大型 FPD・計測 CT 対応のハイエンド汎用微焦点機。',
+    cst:{maker:"CST", model:"ComscanX Premium", kv:"（要記入）", power:"—", focal:"—",
+         detector:"—", sample:"—", accuracy:"（MPE宣言予定）", software:"自社 / VGStudio MAX",
+         notes:"ハイエンド汎用・サファイア球校正実績"},
+    rivals:[
+      {maker:"Nikon", model:"XT H 225 ST 2x", kv:"225 kV(反射)+180 kV(透過)", power:"225 W", focal:"3 µm",
+       detector:"FPD 2880² / 4000²", sample:"最大50 kg / Φ約500 mm", accuracy:"MCT225: 9+L/50 µm",
+       software:"Inspect-X / AI再構成", notes:"3線源交換・傾斜軸・Half.Turn CT", src:"https://industry.nikon.com/en-gb/products/x-ray-ct/xt-h-series/"},
+      {maker:"島津", model:"inspeXio SMX-225CT FPD HR Plus", kv:"225 kV (微)", power:"135 W (1000 µA)", focal:"<4 µm (ボクセル)",
+       detector:"16インチ FPD・16bit", sample:"Φ400×H300 mm / 12 kg", accuracy:"—",
+       software:"inspeXio64 / VG", notes:"おまかせCT・金属アーチファクト低減", src:"https://www.an.shimadzu.co.jp/products/non-destructive-testing/microfocus-x-ray-ct-system/inspexio-smx-225ct-fpd-hr-plus/spec.html"},
+      {maker:"ZEISS", model:"METROTOM 1500", kv:"~225 kV 級 (微)", power:"—", focal:"高分解能",
+       detector:"大面積 FPD", sample:"Φ615×H800 mm / 50 kg", accuracy:"MPE(SD) 4.5+L/50 µm (2630-1.3)",
+       software:"ZEISS INSPECT X-Ray", notes:"DAkkS校正・scatterControl", src:"https://www.zeiss.com/metrology/us/systems/ct_x-ray/industrial-ct/metrotom-1500.html"},
+      {maker:"リガク", model:"CT Lab HV", kv:"225 kV (微)", power:"300 W", focal:"3 µm",
+       detector:"—", sample:"Φ600×1200 mm / 50 kg", accuracy:"—", software:"自社",
+       notes:"FOV 350 mm・最速40秒・大型キャビネット", src:"https://rigaku.com/ja/products/imaging-ndt/x-ray-ct/ct-lab-hv"},
+      {maker:"東芝UT（旧東芝IT）", model:"TXScanner (TXS)", kv:"230 / 300 kV (微)", power:"—", focal:"4 µm",
+       detector:"8/16インチ FPD", sample:"Φ420×H450 / 20 kg", accuracy:"—", software:"自社",
+       notes:"スマートモード・自動校正・画像鮮鋭化", src:"https://www.toshiba-itc.com/hihakai/txscanner/"},
+      {maker:"テスコ", model:"TXS 240/300 Micro", kv:"240 / 300 kV (微)", power:"—", focal:"マイクロフォーカス",
+       detector:"多種 FPD", sample:"アルミ・樹脂 中型", accuracy:"—", software:"自社 / VG",
+       notes:"マニピュレータをユーザー仕様で設計", src:"https://www.tesco-ndt.co.jp/products/microfocus/"},
+      {maker:"Waygate (phoenix)", model:"v|tome|x M (M300)", kv:"300 kV(微)+180 kV(ナノopt)", power:"500 W (微)", focal:"<2 µm(微) / <200 nm(ナノ)",
+       detector:"Dynamic 41|200 (4MP) / 41|100 (16MP)", sample:"Φ420×400 mm / 50 kg", accuracy:"Ruby|plate 3.8 µm + L/100 (VDI2630)",
+       software:"Datos|x / ML-ADR", notes:"デュアル管ボタン切替・Scatter|reduce", src:"https://www.bakerhughes.com/waygate-technologies/industrial-radiography-and-ct/industrial-3d-precision-metrology-ct/vtomex-m"},
+      {maker:"日本装置開発 (JED)", model:"CTH200FPD", kv:"200 kV級 (微)", power:"—", focal:"高分解能",
+       detector:"FPD", sample:"解析用途 中型", accuracy:"—", software:"自社",
+       notes:"高速検査・耐久性（新技術賞受賞系列）", src:"http://www.jed-a.jp/product/"}
+    ]
+  },
+  {
+    id:"custom", jp:"フルカスタム (変わり種)", en:"Full-custom",
+    desc:'<b>デュアル線源 / ナノフォーカス / 斜め CT</b> など特殊構成。大型・重量試料、研究機関向けオープン性、特殊軸（ゴニオ・斜め）が競争軸。',
+    cst:{maker:"CST", model:"デュアル線源CT (開発中)", kv:"230 kV(反射) + 160 kV(透過)", power:"—",
+         focal:"ナノ: 0.2 µm焦点 (L10711-26)", detector:"4343(139µm) / 1512(25µm)",
+         sample:"〜100 kg級 (要求)", accuracy:"（MPE宣言予定）", software:"自社 / VGStudio MAX",
+         notes:"大型重量試料・斜めCT・研究機関向けオープン"},
+    rivals:[
+      {maker:"Comet Yxlon", model:"FF35 CT (dual)", kv:"225 kV(反射)+160/190 kV(透過ナノ)", power:"320 W (225kV側)", focal:"4 µm(2D) / 150-600 nm(透過)",
+       detector:"高精細パネル", sample:"最大50 kg (アップグレード)", accuracy:"MPESD 5.9 µm + L/75 (VDI/VDE 2630)",
+       software:"Geminy / VistaX", notes:"2管ボタン切替・御影石ベース・能動空気制振", src:"https://yxlon.comet.tech/en/products/ff35-ct"},
+      {maker:"Nikon", model:"VOXLS 40 / XT H 225 ST", kv:"225 kV+180 kV+回転 (微)", power:"225 W", focal:"3 µm",
+       detector:"FPD 最大4000²", sample:"大型エンベロープ / 50 kg", accuracy:"MCT225相当でMPE対応",
+       software:"Inspect-X", notes:"複数線源・検出器・傾斜軸・Offset.CT", src:"https://industry.nikon.com/ja-jp/products/x-ray-ct/"},
+      {maker:"リガク", model:"nano3DX", kv:"特性X線 (ナノ相当)", power:"1.2 kW (高輝度)", focal:"0.5 µm / 0.188 µm/pixel",
+       detector:"高解像X線カメラ Φ14.4 mm", sample:"小型 高分解", accuracy:"—", software:"自社 / VG 他",
+       notes:"疑似平行ビーム+レンズ・W/Mo/Cu/Cr 4線源", src:"https://www.yamato-net.co.jp/product/category/science/internal/x-ray-ct-scanner/2801/"},
+      {maker:"島津", model:"Xslicer SMX-6010", kv:"160 kV (微)", power:"—", focal:"1 µm (JIMA)",
+       detector:"300万画素 FPD", sample:"基板・電子部品", accuracy:"—", software:"inspeXio系",
+       notes:"斜めCT(PCT)・検出器傾動旋回の5軸連動", src:"https://www.an.shimadzu.co.jp/products/non-destructive-testing/microfocus-x-ray-inspection-system/xslicer-smx-6010/index.html"},
+      {maker:"ユーエイチシステム", model:"XVA-160□520", kv:"160 kV (微/ナノ)", power:"—", focal:"250 / 800 nm 切替",
+       detector:"高精細", sample:"520×520 mm 大型ステージ", accuracy:"—", software:"自社 / Advance",
+       notes:"自社最大ステージ・大型試料を斜めCT", src:"https://pr.mono.ipros.com/uhsystem/"},
+      {maker:"ZEISS", model:"Xradia (submicron)", kv:"（要更新）", power:"—", focal:"サブミクロン",
+       detector:"対物レンズ系", sample:"小型・超高分解", accuracy:"—", software:"ZEISS INSPECT / 専用",
+       notes:"X線顕微鏡・光学レンズ拡大（要再確認）", src:""},
+      {maker:"Waygate (phoenix)", model:"nanotom m", kv:"180 kV (ナノ)", power:"20 W", focal:"200 nm",
+       detector:"DXR (3072×2400)", sample:"0.25〜250 mm", accuracy:"FAI 1時間レポート", software:"Datos|x",
+       notes:"ナノフォーカス・W/CVDダイヤ・準シンクロトロン", src:"https://www.bakerhughes.com/waygate-technologies/industrial-radiography-and-ct/industrial-3d-precision-metrology-ct/phoenix-nanotom-m"},
+      {maker:"東芝UT（旧東芝IT）", model:"TOSCANER-30000μCM", kv:"300 kV(微) + 160 kV(ナノ)", power:"微150 W / ナノ8 W", focal:"微4 µm / ナノ250 nm(100kV)",
+       detector:"FPD", sample:"Φ390×600 mm", accuracy:"—", software:"自社",
+       notes:"マイクロ+ナノ複合機・高精度", src:"https://www.iri-tokyo.jp/setsubi/bio-h19-mfxct.html"},
+      {maker:"テスコ", model:"450kV カスタム (mini/micro/dual)", kv:"450 kV (高出力微焦点)", power:"高出力", focal:"マイクロフォーカス",
+       detector:"LDA + 大型 FPD", sample:"中〜大型 / 重量物", accuracy:"—", software:"自社 / VG",
+       notes:"ミニ・マイクロ・デュアルを選択提供・フルカスタム", src:"https://www.tesco-ndt.co.jp/products/"}
+    ]
+  }
+];
+
+/* 追加で監視に加えられる候補（必須リスト外・微焦点/ナノ焦点）:
+   ・マーストーケンソリューション MUX シリーズ（ナノフォーカス横照射型）
+   ・(株)アールエフ NAOMi-CT（医療派生・斜め3D）
+   ※ご指示あれば調査して各カテゴリーに追加します。 */
+
+/* ====================================================================
+   ストレージ層: window.storage を優先、無ければセッション内メモリ
+   ==================================================================== */
+const memStore = {};
+const Store = {
+  async get(k){
+    try{ if(window.storage){ const r=await window.storage.get(k); return r?JSON.parse(r.value):null; } }
+    catch(e){}
+    return memStore[k]!==undefined?memStore[k]:null;
+  },
+  async set(k,v){
+    memStore[k]=v;
+    try{ if(window.storage){ await window.storage.set(k, JSON.stringify(v)); } }catch(e){}
+  }
+};
+const snapKey = id => "compwatch2:snapshot:"+id;
+const stampKey = id => "compwatch2:stamp:"+id;
+const cstKey = id => "compwatch2:cst:"+id;
+
+/* ====================================================================
+   描画
+   ==================================================================== */
+const tabsEl = document.getElementById("tabs");
+const panelsEl = document.getElementById("panels");
+
+CATEGORIES.forEach((c,i)=>{
+  const t=document.createElement("button");
+  t.className="tab"; t.role="tab"; t.id="tab-"+c.id;
+  t.setAttribute("aria-selected", i===0?"true":"false");
+  t.innerHTML = c.jp+'<span class="cat-en">'+c.en+'</span><span class="cnt">'+c.rivals.length+'社</span>';
+  t.onclick=()=>selectTab(c.id);
+  tabsEl.appendChild(t);
+
+  const p=document.createElement("div");
+  p.className="panelbox"; p.id="panel-"+c.id;
+  p.style.display = i===0?"block":"none";
+  p.innerHTML = panelHTML(c);
+  panelsEl.appendChild(p);
+});
+
+/* ニュース / トピックス タブ + パネルを追加 */
+(function buildNewsTab(){
+  const t=document.createElement("button");
+  t.className="tab"; t.role="tab"; t.id="tab-news";
+  t.setAttribute("aria-selected","false");
+  t.innerHTML='ニュース / トピックス<span class="cat-en">News</span>';
+  t.onclick=()=>selectTab("news");
+  tabsEl.appendChild(t);
+
+  const p=document.createElement("div");
+  p.className="panelbox"; p.id="panel-news"; p.style.display="none";
+  p.innerHTML=`
+    <div class="panelhead">
+      <div class="desc">世界中のサイトから、競合各社と<b>微焦点／ナノ焦点 X線CT・非破壊検査</b>に関するニュース・トピックスを収集します。取得分は<b>消さずに蓄積</b>され、今回追加された記事には<b>NEW</b>が付きます。</div>
+      <div class="controls">
+        <span class="prog" id="prog-news"></span>
+        <span class="stamp" id="stamp-news">最終更新: 未取得</span>
+        <button class="upd" id="btn-news" onclick="updateNews()">
+          <span class="spin"></span><span class="lbl">最新ニュースを取得</span>
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+      <span style="font-size:11.5px;color:var(--ink3)" id="news-count"></span>
+      <button class="news-clear" id="news-clear" onclick="clearNews()" style="display:none">蓄積した履歴をクリア</button>
+    </div>
+    <div id="news-list"></div>
+    <div class="errbar" id="err-news"></div>
+    <div class="note"><b>蓄積について:</b> 記事は出典 URL（無い場合は見出し）で重複を除き、過去分を残したまま積み上がります（最大 400 件）。発行日の新しい順に並び、今回の取得で追加された分が NEW です。保存・取得はこの画面（Claude のアーティファクト）内で動作します。</div>`;
+  panelsEl.appendChild(p);
+})();
+
+function panelHTML(c){
+  return `
+    <div class="panelhead">
+      <div class="desc">${c.desc}</div>
+      <div class="controls">
+        <span class="prog" id="prog-${c.id}"></span>
+        <span class="stamp" id="stamp-${c.id}">最終更新: 未取得</span>
+        <button class="upd" id="btn-${c.id}" onclick="updateCategory('${c.id}')">
+          <span class="spin"></span><span class="lbl">最新スペックを取得</span>
+        </button>
+      </div>
+    </div>
+    <div class="tablescroll">
+      <table>
+        <thead><tr>
+          <th>メーカー / 機種</th>
+          ${COLS.map(col=>`<th>${col.label}</th>`).join("")}
+        </tr></thead>
+        <tbody id="tbody-${c.id}">${rowsHTML(c)}</tbody>
+      </table>
+    </div>
+    <div class="errbar" id="err-${c.id}"></div>
+    <div class="editnote">※ 自社 (CST) 行のセルはクリックで直接編集できます（社内の正確な公開仕様を記入してください）。</div>
+    <div class="note">
+      <b>更新の仕組み:</b> 「最新スペックを取得」を押すと、このカテゴリーの各競合機種について Web 検索を行い公開スペックを取得します。
+      前回値と異なるセルは<b>黄色でハイライト</b>し「前回: ◯◯」を併記します。自社行は更新対象外（手入力）です。
+    </div>`;
+}
+
+function rowsHTML(c){
+  let html = cstRowHTML(c);
+  c.rivals.forEach((r,idx)=>{ html += rivalRowHTML(c.id, r, idx); });
+  return html;
+}
+
+function cstRowHTML(c){
+  const r=c.cst;
+  const cells = COLS.map(col=>
+    `<td contenteditable="true" data-cat="${c.id}" data-key="${col.key}" oninput="onCstEdit(this)">${esc(r[col.key]||"—")}</td>`
+  ).join("");
+  return `<tr class="cstrow">
+    <td class="maker"><span class="pill">自社</span><div class="mk">${esc(r.maker)}</div><div class="md">${esc(r.model)}</div></td>
+    ${cells}</tr>`;
+}
+
+function rivalRowHTML(catId, r, idx){
+  const link = r.src ? `<br><a href="${r.src}" target="_blank" rel="noopener">出典 ↗</a>` : "";
+  const cells = COLS.map(col=>
+    `<td><span class="cell" id="cell-${catId}-${idx}-${col.key}">${esc(r[col.key]||"—")}</span></td>`
+  ).join("");
+  return `<tr>
+    <td class="maker"><div class="mk">${esc(r.maker)}</div><div class="md">${esc(r.model)}</div>${link}</td>
+    ${cells}</tr>`;
+}
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function selectTab(id){
+  const ids = CATEGORIES.map(c=>c.id).concat(["news"]);
+  ids.forEach(cid=>{
+    document.getElementById("tab-"+cid).setAttribute("aria-selected", cid===id?"true":"false");
+    document.getElementById("panel-"+cid).style.display = cid===id?"block":"none";
+  });
+}
+
+async function onCstEdit(td){
+  const cat=td.dataset.cat, key=td.dataset.key;
+  const c=CATEGORIES.find(x=>x.id===cat);
+  c.cst[key]=td.textContent;
+  await Store.set(cstKey(cat), c.cst);
+}
+
+/* ====================================================================
+   更新: 各競合機種を web_search で再取得 → 差分比較 → ハイライト
+   ==================================================================== */
+async function fetchSpec(maker, model){
+  const prompt =
+`You are a competitive-intelligence assistant for an industrial X-ray CT company. `+
+`Search the web for the CURRENT published specifications of this exact MICROFOCUS/NANOFOCUS X-ray CT product: "${maker} ${model}". `+
+`Return ONLY a JSON object (no markdown, no code fences, no prose) with these exact keys: `+
+`kv, power, focal, detector, sample, accuracy, software, notes. `+
+`Meaning: kv=max tube voltage incl. micro/nano if dual (e.g. "300 kV micro + 180 kV nano"); power=max power (e.g. "500 W"); `+
+`focal=min focal spot or detail detectability (e.g. "<1 µm / 200 nm"); detector=detector type/size; `+
+`sample=max sample size/weight (e.g. "Φ420 mm / 50 kg"); accuracy=metrology MPE spec or "—"; `+
+`software=analysis software; notes=ONE short differentiator phrase in Japanese (max 12 words). `+
+`If a value is unknown, use "—". Keep every value under 44 characters. Output JSON only.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6", max_tokens:1000,
+      messages:[{role:"user", content:prompt}],
+      tools:[{type:"web_search_20250305", name:"web_search"}]
+    })
+  });
+  if(!res.ok) throw new Error("API "+res.status);
+  const data = await res.json();
+  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+  const clean = text.replace(/```json/gi,"").replace(/```/g,"").trim();
+  const start=clean.indexOf("{"), end=clean.lastIndexOf("}");
+  if(start<0||end<0) throw new Error("no JSON");
+  return JSON.parse(clean.slice(start,end+1));
+}
+
+async function updateCategory(catId){
+  const c=CATEGORIES.find(x=>x.id===catId);
+  const btn=document.getElementById("btn-"+catId);
+  const err=document.getElementById("err-"+catId);
+  const prog=document.getElementById("prog-"+catId);
+  err.style.display="none"; err.textContent="";
+  btn.disabled=true; btn.classList.add("loading");
+  btn.querySelector(".lbl").textContent="取得中…";
+
+  const prevSnap = (await Store.get(snapKey(catId))) || {};
+  const newSnap = {};
+  let done=0, failures=0;
+  const total=c.rivals.length;
+  prog.textContent=`0 / ${total}`;
+
+  const tasks = c.rivals.map(async (r, idx)=>{
+    try{
+      const spec = await fetchSpec(r.maker, r.model);
+      newSnap[idx]=spec;
+      applyRow(catId, idx, spec, prevSnap[idx]||{});
+    }catch(e){
+      failures++;
+      newSnap[idx] = prevSnap[idx] || pick(r);
+    }finally{
+      done++; prog.textContent=`${done} / ${total}`;
+    }
+  });
+  await Promise.all(tasks);
+
+  await Store.set(snapKey(catId), newSnap);
+  const stamp = new Date().toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  await Store.set(stampKey(catId), stamp);
+  document.getElementById("stamp-"+catId).textContent="最終更新: "+stamp;
+
+  btn.disabled=false; btn.classList.remove("loading");
+  btn.querySelector(".lbl").textContent="最新スペックを取得";
+  prog.textContent="";
+  if(failures>0){
+    err.style.display="block";
+    err.textContent=`${failures} / ${total} 件でスペックを取得できませんでした（前回値を保持）。時間をおいて再度お試しください。`;
+  }
+}
+
+function pick(r){ const o={}; COLS.forEach(c=>o[c.key]=r[c.key]||"—"); return o; }
+
+function applyRow(catId, idx, spec, prev){
+  COLS.forEach(col=>{
+    const el=document.getElementById(`cell-${catId}-${idx}-${col.key}`);
+    if(!el) return;
+    const val = (spec[col.key]!=null && spec[col.key]!=="") ? String(spec[col.key]) : "—";
+    const old = prev[col.key]!=null ? String(prev[col.key]) : null;
+    const changed = old!==null && old!==val;
+    el.classList.toggle("changed", changed);
+    if(changed){ el.innerHTML = esc(val)+`<span class="prev">前回: <s>${esc(old)}</s></span>`; }
+    else{ el.textContent = val; }
+  });
+}
+
+/* ====================================================================
+   ニュース / トピックス: web_search で収集 → 重複除去で蓄積 → NEW表示
+   ==================================================================== */
+const NEWS_ITEMS_KEY = "compwatch2:news:items";
+const NEWS_STAMP_KEY = "compwatch2:news:stamp";
+
+const NEWS_FOCI = [
+  "the following industrial X-ray CT companies and their recent product launches, partnerships and announcements: ZEISS, Nikon Metrology, Comet Yxlon, Waygate Technologies (phoenix), Shimadzu 島津製作所, Rigaku リガク, 東芝ユニファイドテクノロジーズ (Toshiba), Bruker (SkyScan), Nordson, テスコ, ユー・エイチ・システム, 日本装置開発",
+  "industrial microfocus and nanofocus X-ray CT technology and market trends: AI / deep-learning CT reconstruction, automated defect recognition, CT metrology standards (VDI/VDE 2630, ISO 10360-11), new nanofocus or dual-source CT systems, NDT industry developments",
+  "日本国内の産業用X線CT・非破壊検査に関する最近のニュースやトピックス（新製品、計測用CT、ナノフォーカスCT、展示会 JIMA 総合検査機器展 など）"
+];
+
+function newsKeyOf(it){
+  if(it && it.url && String(it.url).trim()){ return String(it.url).trim().toLowerCase().replace(/\/+$/,""); }
+  return (it && it.title ? String(it.title) : "").trim().toLowerCase().replace(/\s+/g,"");
+}
+
+async function fetchNews(focus){
+  const prompt =
+`You are a competitive-intelligence analyst for an industrial microfocus/nanofocus X-ray CT company. `+
+`Use web search to find RECENT news and topics (prefer the last 12 months, newest first) about: ${focus}. `+
+`Return ONLY a JSON array (no markdown, no code fences, no prose) of up to 6 objects with these keys: `+
+`date (publication date as "YYYY-MM-DD" or "YYYY-MM" if known, else ""), `+
+`maker (company name, or "業界" for general industry topics), `+
+`title (concise headline, under 90 chars, Japanese if natural else original), `+
+`summary (ONE sentence in Japanese, under 110 chars), `+
+`url (source article URL), source (publication or site name). `+
+`Only include items genuinely about industrial X-ray CT (microfocus/nanofocus, NDT, CT metrology) or the listed companies. `+
+`Do not invent URLs. Output a JSON array only.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6", max_tokens:1000,
+      messages:[{role:"user", content:prompt}],
+      tools:[{type:"web_search_20250305", name:"web_search"}]
+    })
+  });
+  if(!res.ok) throw new Error("API "+res.status);
+  const data = await res.json();
+  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
+  const clean = text.replace(/```json/gi,"").replace(/```/g,"").trim();
+  const start=clean.indexOf("["), end=clean.lastIndexOf("]");
+  if(start<0||end<0) throw new Error("no JSON");
+  const arr = JSON.parse(clean.slice(start,end+1));
+  return Array.isArray(arr)?arr:[];
+}
+
+async function updateNews(){
+  const btn=document.getElementById("btn-news");
+  const err=document.getElementById("err-news");
+  const prog=document.getElementById("prog-news");
+  err.style.display="none"; err.textContent="";
+  btn.disabled=true; btn.classList.add("loading");
+  btn.querySelector(".lbl").textContent="収集中…";
+
+  const existing = (await Store.get(NEWS_ITEMS_KEY)) || [];
+  const seen = new Set(existing.map(newsKeyOf));
+  const stamp = new Date().toISOString();
+  const batch=[];
+  let done=0, failures=0;
+  prog.textContent=`0 / ${NEWS_FOCI.length}`;
+
+  const tasks = NEWS_FOCI.map(async focus=>{
+    try{
+      const arr = await fetchNews(focus);
+      arr.forEach(it=>{
+        if(!it || (!it.title && !it.url)) return;
+        const k=newsKeyOf(it);
+        if(seen.has(k)) return;
+        seen.add(k);
+        batch.push({
+          date:(it.date||"").trim(), maker:(it.maker||"業界").trim(),
+          title:(it.title||"(無題)").trim(), summary:(it.summary||"").trim(),
+          url:(it.url||"").trim(), source:(it.source||"").trim(), addedAt:stamp
+        });
+      });
+    }catch(e){ failures++; }
+    finally{ done++; prog.textContent=`${done} / ${NEWS_FOCI.length}`; }
+  });
+  await Promise.all(tasks);
+
+  const combined = batch.concat(existing).slice(0,400);
+  await Store.set(NEWS_ITEMS_KEY, combined);
+  await Store.set(NEWS_STAMP_KEY, stamp);
+
+  const disp = new Date(stamp).toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  document.getElementById("stamp-news").textContent="最終更新: "+disp;
+  renderNews(combined, stamp);
+
+  btn.disabled=false; btn.classList.remove("loading");
+  btn.querySelector(".lbl").textContent="最新ニュースを取得";
+  prog.textContent="";
+  if(batch.length===0 && failures===0){
+    err.style.display="block"; err.style.background="var(--panel2)"; err.style.color="var(--ink2)"; err.style.borderColor="var(--line2)";
+    err.textContent="新規の記事は見つかりませんでした（重複は自動的に除外されます）。";
+  }else if(failures>0){
+    err.style.display="block"; err.style.background="var(--err)"; err.style.color="var(--err-ink)"; err.style.borderColor="#e8b4b4";
+    err.textContent=`${failures} / ${NEWS_FOCI.length} 件の検索が失敗しました。今回 ${batch.length} 件を追加。時間をおいて再度お試しください。`;
+  }
+}
+
+function newsTs(it){
+  const t = Date.parse(it.date);
+  if(isFinite(t)) return t;
+  const a = Date.parse(it.addedAt);
+  return isFinite(a)?a:0;
+}
+
+function renderNews(items, latestStamp){
+  const list=document.getElementById("news-list");
+  const countEl=document.getElementById("news-count");
+  const clearBtn=document.getElementById("news-clear");
+  if(!items || items.length===0){
+    list.innerHTML=`<div class="news-empty">まだトピックスがありません。「最新ニュースを取得」を押すと、世界中のサイトから関連ニュースを集めて蓄積します。</div>`;
+    countEl.textContent=""; clearBtn.style.display="none";
+    return;
+  }
+  const sorted = items.slice().sort((a,b)=>newsTs(b)-newsTs(a));
+  const newCount = latestStamp ? sorted.filter(it=>it.addedAt===latestStamp).length : 0;
+  countEl.textContent = `蓄積 ${items.length} 件` + (newCount? `（今回 +${newCount}）` : "");
+  clearBtn.style.display="inline";
+
+  list.innerHTML = `<div class="news-list">` + sorted.map(it=>{
+    const isNew = latestStamp && it.addedAt===latestStamp;
+    const chipCls = (it.maker==="業界"||/industry/i.test(it.maker)) ? "news-chip ind" : "news-chip";
+    const title = it.url ? `<a class="news-title" href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a>`
+                         : `<span class="news-title">${esc(it.title)}</span>`;
+    return `<div class="news-item${isNew?" isnew":""}">
+      <div class="news-meta">
+        <span class="${chipCls}">${esc(it.maker||"業界")}</span>
+        ${it.date?`<span class="news-date">${esc(it.date)}</span>`:""}
+        ${isNew?`<span class="news-new">NEW</span>`:""}
+      </div>
+      ${title}
+      ${it.summary?`<div class="news-sum">${esc(it.summary)}</div>`:""}
+      ${it.source?`<div class="news-src">${esc(it.source)}</div>`:""}
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+async function clearNews(){
+  if(!confirm("蓄積したニュース履歴をすべて削除します。よろしいですか？")) return;
+  await Store.set(NEWS_ITEMS_KEY, []);
+  await Store.set(NEWS_STAMP_KEY, "");
+  document.getElementById("stamp-news").textContent="最終更新: 未取得";
+  renderNews([], "");
+}
+
+/* ====================================================================
+   GitHub 履歴連携（手動コミット方式）
+   - 起動時: data/competitor_history.json をリポジトリから読み込み全状態を復元
+   - 「履歴JSONをダウンロード」: 現在の全状態を1ファイルに書き出し
+     → これをリポジトリの data/ にコミットすると、次回以降このファイルが正本になる
+   ==================================================================== */
+const HISTORY_PATH = "data/competitor_history.json"; // リポジトリ内の保存先（このHTMLからの相対パス）
+
+async function gatherCurrentState(){
+  const categories={};
+  for(const c of CATEGORIES){
+    categories[c.id] = {
+      cst: c.cst,
+      snapshot: (await Store.get(snapKey(c.id))) || null,
+      stamp: (await Store.get(stampKey(c.id))) || null
+    };
+  }
+  return {
+    version: 2,
+    savedAt: new Date().toISOString(),
+    categories,
+    news: {
+      items: (await Store.get(NEWS_ITEMS_KEY)) || [],
+      stamp: (await Store.get(NEWS_STAMP_KEY)) || ""
+    }
+  };
+}
+
+async function downloadHistory(){
+  const state = await gatherCurrentState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "competitor_history.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  const s = document.getElementById("repo-status");
+  if(s) s.innerHTML = "ダウンロード完了 → リポジトリの <b>data/competitor_history.json</b> に上書きコミットしてください";
+}
+
+async function applyState(state){
+  if(!state || !state.categories) return false;
+  for(const c of CATEGORIES){
+    const cat = state.categories[c.id];
+    if(!cat) continue;
+    if(cat.cst){ Object.assign(c.cst, cat.cst); await Store.set(cstKey(c.id), c.cst); }
+    if(cat.stamp){
+      await Store.set(stampKey(c.id), cat.stamp);
+      const el=document.getElementById("stamp-"+c.id); if(el) el.textContent="最終更新: "+cat.stamp;
+    }
+    if(cat.snapshot){
+      await Store.set(snapKey(c.id), cat.snapshot);
+      c.rivals.forEach((r,idx)=>{ if(cat.snapshot[idx]) applyRow(c.id, idx, cat.snapshot[idx], cat.snapshot[idx]); });
+    }
+  }
+  CATEGORIES.forEach(c=>{
+    const tb=document.getElementById("tbody-"+c.id);
+    const row=tb?tb.querySelector("tr.cstrow"):null;
+    if(row){ row.querySelectorAll("td[contenteditable]").forEach(td=>{ td.textContent=c.cst[td.dataset.key]||"—"; }); }
+  });
+  const ni = (state.news && state.news.items) ? state.news.items : [];
+  const ns = (state.news && state.news.stamp) ? state.news.stamp : "";
+  await Store.set(NEWS_ITEMS_KEY, ni);
+  await Store.set(NEWS_STAMP_KEY, ns);
+  if(ns){
+    const disp=new Date(ns).toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+    const el=document.getElementById("stamp-news"); if(el) el.textContent="最終更新: "+disp;
+  }
+  renderNews(ni, ns);
+  return true;
+}
+
+async function loadFromRepo(){
+  const status=document.getElementById("repo-status");
+  try{
+    const res = await fetch(HISTORY_PATH + "?t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const state = await res.json();
+    await applyState(state);
+    const when = state.savedAt
+      ? new Date(state.savedAt).toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
+      : "OK";
+    if(status) status.innerHTML = "リポジトリ履歴を読込: <b>"+when+"</b>";
+    return true;
+  }catch(e){
+    if(status) status.textContent = "リポジトリ履歴なし（この画面のローカル保存を使用）";
+    return false;
+  }
+}
+
+/* 起動時: 保存済みスナップショット・タイムスタンプ・自社入力を復元 */
+(async function init(){
+  const loaded = await loadFromRepo();
+  if(loaded) return; // リポジトリ履歴が正本。読み込めたら復元完了
+
+  // フォールバック: この画面のローカル保存(window.storage / セッション)から復元
+  for(const c of CATEGORIES){
+    const savedCst = await Store.get(cstKey(c.id));
+    if(savedCst){ Object.assign(c.cst, savedCst); }
+    const stamp = await Store.get(stampKey(c.id));
+    if(stamp){ document.getElementById("stamp-"+c.id).textContent="最終更新: "+stamp; }
+    const snap = await Store.get(snapKey(c.id));
+    if(snap){ c.rivals.forEach((r,idx)=>{ if(snap[idx]) applyRow(c.id, idx, snap[idx], snap[idx]); }); }
+  }
+  CATEGORIES.forEach(c=>{
+    const tb=document.getElementById("tbody-"+c.id);
+    const row=tb.querySelector("tr.cstrow");
+    if(row){ row.querySelectorAll("td[contenteditable]").forEach(td=>{ td.textContent = c.cst[td.dataset.key]||"—"; }); }
+  });
+  const newsItems = (await Store.get(NEWS_ITEMS_KEY)) || [];
+  const newsStamp = await Store.get(NEWS_STAMP_KEY);
+  if(newsStamp){
+    const disp = new Date(newsStamp).toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+    document.getElementById("stamp-news").textContent="最終更新: "+disp;
+  }
+  renderNews(newsItems, newsStamp||"");
+})();
+</script>
